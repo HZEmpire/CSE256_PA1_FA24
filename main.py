@@ -111,6 +111,9 @@ def main():
         # Train and evaluate NN3
         print('\n3 layers:')
         nn3_train_accuracy, nn3_test_accuracy = experiment(NN3BOW(input_size=512, hidden_size=100), train_loader, test_loader)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Training and evaluation completed in : {elapsed_time} seconds")
 
         # Plot the training accuracy
         plt.figure(figsize=(8, 6))
@@ -162,6 +165,9 @@ def main():
         # Train and evaluate DAN
         start_time = time.time()
         dan_train_accuracy, dan_test_accuracy = experiment(DAN(wordEmbeddings=word_embeddings, freeze=True), train_loader, test_loader)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Training and evaluation completed in : {elapsed_time} seconds")
 
         # Plot the training accuracy
         plt.figure(figsize=(8, 6))
@@ -191,16 +197,17 @@ def main():
         plt.savefig(testing_accuracy_file)
         print(f"Dev accuracy plot saved as {testing_accuracy_file}\n\n")
 
-    """
+    
     elif args.model == "randDAN":
         # Load dataset
         start_time = time.time()
 
-        # We don't need to load pre-trained embeddings for randDAN
-        train_data = SentimentDatasetDAN("data/train.txt", None)
-        dev_data = SentimentDatasetDAN("data/dev.txt", None)
+        word_embeddings = read_word_embeddings("data/glove.6B.50d-relativized.txt")
+        train_data = SentimentDatasetDAN("data/train.txt", word_embeddings)
+        dev_data = SentimentDatasetDAN("data/dev.txt", word_embeddings)
         train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
         test_loader = DataLoader(dev_data, batch_size=16, shuffle=False)
+        
 
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -208,13 +215,12 @@ def main():
 
         # Train and evaluate randDAN
         start_time = time.time()
-        vocab_size = len(train_data.sentences_idx)
-        embed_dim = 300  # Same dimension as GloVe for fair comparison
-        randdan_train_accuracy, randdan_test_accuracy = experiment(
-            DAN(vocab_size=vocab_size, embed_dim=embed_dim),
-            train_loader, 
-            test_loader
-        )
+        vocab_size = len(word_embeddings.word_indexer)
+        embedding_dim = word_embeddings.get_embedding_length()
+        randdan_train_accuracy, randdan_test_accuracy = experiment(DAN(vocab_size=vocab_size, embedding_dim=embedding_dim, dropout=0.8), train_loader, test_loader)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Training and evaluation completed in : {elapsed_time} seconds")
 
         # Plot the training accuracy
         plt.figure(figsize=(8, 6))
@@ -246,7 +252,7 @@ def main():
 
     else:
         print(f"Unknown model type: {args.model}")
-    """
+    
 
 if __name__ == "__main__":
     main()

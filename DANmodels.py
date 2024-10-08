@@ -31,25 +31,13 @@ class SentimentDatasetDAN(Dataset):
         self.sentences = [" ".join(ex.words) for ex in self.examples]
         self.labels = [ex.label for ex in self.examples]
 
-        if word_embeddings is None:
-            self.sentences_idx = []
-            words = {}
-            for sentence in self.sentences:
-                for word in sentence.split():
-                    if word not in words:
-                        words[word] = len(words)
-            for sentence in self.sentences:
-                word_indices = [words[word] for word in sentence.split()]
-                self.sentences_idx.append(word_indices)
-        
-        else:
-            # Convert sentences to word indices using the Indexer
-            self.sentences_idx = []
-            for sentence in self.sentences:
-                word_indices = [word_embeddings.word_indexer.index_of(word) for word in sentence.split()]
-                # Replace all -1 indices with 1
-                word_indices = [1 if idx == -1 else idx for idx in word_indices]
-                self.sentences_idx.append(word_indices)
+        # Convert sentences to word indices using the Indexer
+        self.sentences_idx = []
+        for sentence in self.sentences:
+            word_indices = [word_embeddings.word_indexer.index_of(word) for word in sentence.split()]
+            # Replace all -1 indices with 1
+            word_indices = [1 if idx == -1 else idx for idx in word_indices]
+            self.sentences_idx.append(word_indices)
 
         # Pad the sentences to the maximum length
         max_length = max([len(sentence) for sentence in self.sentences_idx])
@@ -78,7 +66,7 @@ class SentimentDatasetDAN(Dataset):
 
 # Deep Averaging Network
 class DAN(nn.Module):
-    def __init__(self, wordEmbeddings=None, hidden_size=200, freeze=True, dropout=0.6, vocab_size=None, embed_dim=300):
+    def __init__(self, wordEmbeddings=None, hidden_size=200, freeze=True, dropout=0.6, vocab_size=None, embedding_dim=None):
         """The constructor for DAN
         params:
             wordEmbeddings: the word embeddings object
@@ -87,9 +75,8 @@ class DAN(nn.Module):
         """
         super().__init__()
         if wordEmbeddings is None:
-            assert vocab_size is not None
-            self.embedding = nn.Embedding(vocab_size, embed_dim)
-            self.fc1 = nn.Linear(embed_dim, hidden_size)
+            self.embedding = nn.Embedding(vocab_size, embedding_dim)
+            self.fc1 = nn.Linear(embedding_dim, hidden_size)
         else:
             self.embedding = wordEmbeddings.get_initialized_embedding_layer(freeze)
             self.fc1 = nn.Linear(wordEmbeddings.get_embedding_length(), hidden_size)
