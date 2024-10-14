@@ -23,6 +23,7 @@ pip install scikit-learn matplotlib torch re
 ```
 
 Please also make sure to put the following files in the /data directory:
+if no such directory exists, create one and put the following files in it.
 ```bash
 mkdir data
 mv dev.txt data/
