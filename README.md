@@ -22,6 +22,15 @@ To install the necessary dependencies, run:
 pip install scikit-learn matplotlib torch re
 ```
 
+Please also make sure to put the following files in the /data directory:
+```bash
+mkdir data
+mv dev.txt data/
+mv train.txt data/
+mv glove.6B.50d-relativized.txt data/
+mv glove.6B.300d-relativized.txt data/
+```
+
 ## Usage
 You can run different models (BOW, DAN, random DAN, or BPE-DAN) by specifying the model type and options via command-line arguments.
 
