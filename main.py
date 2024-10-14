@@ -11,7 +11,7 @@ import argparse
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from BOWmodels import SentimentDatasetBOW, NN2BOW, NN3BOW
-from DANmodels import SentimentDatasetDAN, DAN
+from DANmodels import SentimentDatasetDAN, DAN, BPE
 
 
 # Training function
@@ -85,7 +85,9 @@ def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Run model training based on specified model type')
     parser.add_argument('--model', type=str, required=True, help='Model type to train (e.g., BOW)')
-
+    parser.add_argument('--freeze', type=bool, default=True, help='Freeze word embeddings for DAN model')
+    parser.add_argument('--dropout', type=float, default=0.3, help='Dropout rate for the model')
+    parser.add_argument('--vocab', type=int, default=500, help='Vocabulary size for BPE model')
     # Parse the command-line arguments
     args = parser.parse_args()
 
@@ -164,7 +166,7 @@ def main():
 
         # Train and evaluate DAN
         start_time = time.time()
-        dan_train_accuracy, dan_test_accuracy = experiment(DAN(wordEmbeddings=word_embeddings, freeze=True), train_loader, test_loader)
+        dan_train_accuracy, dan_test_accuracy = experiment(DAN(wordEmbeddings=word_embeddings, freeze=args.freeze), train_loader, test_loader)
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Training and evaluation completed in : {elapsed_time} seconds")
@@ -179,7 +181,7 @@ def main():
         plt.grid()
 
         # Save the training accuracy figure
-        training_accuracy_file = 'train_accuracy.png'
+        training_accuracy_file = 'train_accuracy_dan.png'
         plt.savefig(training_accuracy_file)
         print(f"\n\nTraining accuracy plot saved as {training_accuracy_file}")
 
@@ -193,12 +195,12 @@ def main():
         plt.grid()
 
         # Save the testing accuracy figure
-        testing_accuracy_file = 'dev_accuracy.png'
+        testing_accuracy_file = 'dev_accuracy_dan.png'
         plt.savefig(testing_accuracy_file)
         print(f"Dev accuracy plot saved as {testing_accuracy_file}\n\n")
 
     
-    elif args.model == "randDAN":
+    elif args.model == "RANDDAN":
         # Load dataset
         start_time = time.time()
 
@@ -217,7 +219,7 @@ def main():
         start_time = time.time()
         vocab_size = len(word_embeddings.word_indexer)
         embedding_dim = word_embeddings.get_embedding_length()
-        randdan_train_accuracy, randdan_test_accuracy = experiment(DAN(vocab_size=vocab_size, embedding_dim=embedding_dim, dropout=0.8), train_loader, test_loader)
+        randdan_train_accuracy, randdan_test_accuracy = experiment(DAN(vocab_size=vocab_size, embedding_dim=embedding_dim, dropout=args.dropout), train_loader, test_loader)
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Training and evaluation completed in : {elapsed_time} seconds")
@@ -249,6 +251,62 @@ def main():
         testing_accuracy_file = 'dev_accuracy_randdan.png'
         plt.savefig(testing_accuracy_file)
         print(f"Dev accuracy plot saved as {testing_accuracy_file}\n\n")
+
+    elif args.model == "SUBWORDDAN":
+        # Load dataset
+        start_time = time.time()
+
+        sentences = read_sentiment_examples("data/train.txt")
+        bpe = BPE(vocab_size=args.vocab)
+        bpe.fit([" ".join(ex.words) for ex in sentences])
+        train_data = SentimentDatasetDAN("data/train.txt", word_embeddings=None, bpe=bpe)
+        dev_data = SentimentDatasetDAN("data/dev.txt", word_embeddings=None, bpe=bpe)
+        train_loader = DataLoader(train_data, batch_size=16, shuffle=True)
+        test_loader = DataLoader(dev_data, batch_size=16, shuffle=False)
+        
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Data loaded in : {elapsed_time} seconds")
+
+        # Train and evaluate randDAN
+        start_time = time.time()
+        vocab_size = len(bpe.idx_to_obj)
+        embedding_dim = 50
+        randdan_train_accuracy, randdan_test_accuracy = experiment(DAN(vocab_size=vocab_size, embedding_dim=embedding_dim, dropout=0.3), train_loader, test_loader)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Training and evaluation completed in : {elapsed_time} seconds")
+
+        # Plot the training accuracy
+        plt.figure(figsize=(8, 6))
+        plt.plot(randdan_train_accuracy, label='BPE DAN')
+        plt.xlabel('Epochs')
+        plt.ylabel('Training Accuracy')
+        plt.title('Training Accuracy for BPE DAN')
+        plt.legend()
+        plt.grid()
+
+        # Save the training accuracy figure
+        training_accuracy_file = 'train_accuracy_bpedan.png'
+        plt.savefig(training_accuracy_file)
+        print(f"\n\nTraining accuracy plot saved as {training_accuracy_file}")
+
+        # Plot the testing accuracy
+        plt.figure(figsize=(8, 6))
+        plt.plot(randdan_test_accuracy, label='BPE DAN')
+        plt.xlabel('Epochs')
+        plt.ylabel('Dev Accuracy')
+        plt.title('Dev Accuracy for BPE DAN')
+        plt.legend()
+        plt.grid()
+
+        # Save the testing accuracy figure
+        testing_accuracy_file = 'dev_accuracy_bpedan.png'
+        plt.savefig(testing_accuracy_file)
+        print(f"Dev accuracy plot saved as {testing_accuracy_file}\n\n")
+
+
 
     else:
         print(f"Unknown model type: {args.model}")

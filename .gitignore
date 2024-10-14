@@ -4,3 +4,11 @@ __pycache__/
 # large files
 data/glove.6B.50d-relativized.txt
 data/glove.6B.300d-relativized.txt
+
+# Photos and other files
+*.jpg
+*.jpeg
+*.png
+*.pdf
+*.docx
+*.tex
